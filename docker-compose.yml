@@ -4,21 +4,22 @@ services:
   app:
     build: .
     ports:
-      - "8080:8080"
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgres://user:password@localhost:5432/app_db?sslmode=disable
     depends_on:
       - db
-    environment:
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
-      - DB_NAME=postgres
 
   db:
     image: postgres:latest
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: app_db
     ports:
       - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

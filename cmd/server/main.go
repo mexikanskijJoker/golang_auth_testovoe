@@ -28,7 +28,12 @@ func main() {
 }
 
 func run(ctx context.Context) error {
-	pgxCfg, err := pgxpool.ParseConfig("postgres://postgres:postgres@localhost:5433/postgres?sslmode=disable")
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		return fmt.Errorf("DATABASE_URL")
+	}
+
+	pgxCfg, err := pgxpool.ParseConfig(databaseURL)
 	if err != nil {
 		return err
 	}

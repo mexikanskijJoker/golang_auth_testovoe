@@ -3,6 +3,8 @@ package store
 import (
 	"context"
 	_ "embed"
+	"fmt"
+	"time"
 
 	"github.com/doug-martin/goqu/v9"
 	_ "github.com/doug-martin/goqu/v9/dialect/postgres"
@@ -10,6 +12,8 @@ import (
 )
 
 type TokenStore interface {
+	CreateUser(email, ip, guid string) error
+	CreateRefreshToken(payload string) error
 }
 
 type Store struct {
@@ -19,8 +23,10 @@ type Store struct {
 var (
 	userTable = goqu.Dialect("postgres").From("users").Prepared(true)
 	userCols  = []any{
-		"id",
 		"email",
+		"uuid",
+		"current_ip_sign_in",
+		"last_sign_in_at",
 	}
 )
 
@@ -47,6 +53,37 @@ func New(pool *pgxpool.Pool) *Store {
 func (s *Store) ApplyMigrations(ctx context.Context) error {
 	if _, err := s.db.Exec(ctx, string(migrationFS)); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (s *Store) CreateUser(email, ip, guid string) error {
+	_, _, err := userTable.
+		Insert().
+		Rows(goqu.Record{
+			"uuid":               guid,
+			"email":              email,
+			"current_ip_sign_in": ip,
+			"last_sign_in_at":    time.Now(),
+		}).
+		Returning(userCols...).ToSQL()
+	if err != nil {
+		return fmt.Errorf("create_user: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Store) CreateRefreshToken(payload string) error {
+	_, _, err := refreshTokenTable.
+		Insert().
+		Rows(goqu.Record{
+			"payload": payload,
+		}).
+		Returning(refreshTokenCols...).ToSQL()
+	if err != nil {
+		return fmt.Errorf("create_refresh_token: %w", err)
 	}
 
 	return nil
