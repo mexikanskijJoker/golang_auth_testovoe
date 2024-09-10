@@ -46,7 +46,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ip := r.Header.Get("X-Forwarded-For")
+	ip := r.RemoteAddr
 
 	if err := s.store.CreateUser(email, ip, guid); err != nil {
 		http.Error(w, fmt.Sprintf("create user: %v", err), http.StatusInternalServerError)
@@ -57,6 +57,10 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, fmt.Sprintf("generate jwt: %v", err), http.StatusInternalServerError)
 		return
+	}
+
+	if len(refresh) > 72 {
+		refresh = refresh[:72]
 	}
 
 	encodedRefreshToken, err := bcrypt.GenerateFromPassword([]byte(refresh), bcrypt.DefaultCost)
@@ -77,6 +81,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		http.Error(w, fmt.Sprintf("marshal payload: %v", err), http.StatusInternalServerError)
+		return
 	}
 
 	w.Write(payload)

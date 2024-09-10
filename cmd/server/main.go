@@ -28,12 +28,13 @@ func main() {
 }
 
 func run(ctx context.Context) error {
-	databaseURL := os.Getenv("DATABASE_URL")
-	if databaseURL == "" {
-		return fmt.Errorf("DATABASE_URL")
-	}
+	// databaseURL := os.Getenv("DATABASE_URL")
+	// if databaseURL == "" {
+	// 	return fmt.Errorf("DATABASE_URL")
+	// }
 
-	pgxCfg, err := pgxpool.ParseConfig(databaseURL)
+	pgxCfg, err := pgxpool.ParseConfig("postgres://postgres:postgres@localhost:5433/postgres?sslmode=disable")
+	// pgxCfg, err := pgxpool.ParseConfig(databaseURL)
 	if err != nil {
 		return err
 	}
