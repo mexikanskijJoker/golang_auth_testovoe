@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -32,7 +33,7 @@ func New(m *jwtmanager.Manager, store store.TokenStore) *Server {
 
 	s.Server = &http.Server{
 		Handler: r,
-		Addr:    ":8000",
+		Addr:    ":8080",
 	}
 
 	return s
@@ -41,12 +42,12 @@ func New(m *jwtmanager.Manager, store store.TokenStore) *Server {
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	guid := r.URL.Query().Get("guid")
 	email := "test@gmail.com"
-	if guid == "" {
-		http.Error(w, "invalid params", http.StatusForbidden)
+
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("split_host_port: %v", err), http.StatusInternalServerError)
 		return
 	}
-
-	ip := r.RemoteAddr
 
 	if err := s.store.CreateUser(email, ip, guid); err != nil {
 		http.Error(w, fmt.Sprintf("create user: %v", err), http.StatusInternalServerError)
@@ -59,11 +60,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(refresh) > 72 {
-		refresh = refresh[:72]
-	}
-
-	encodedRefreshToken, err := bcrypt.GenerateFromPassword([]byte(refresh), bcrypt.DefaultCost)
+	encodedRefreshToken, err := bcrypt.GenerateFromPassword([]byte(refresh[:72]), bcrypt.DefaultCost)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("bcrypt.GenerateFromPassword: %v", err), http.StatusInternalServerError)
 		return
@@ -77,7 +74,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 	payload, err := json.Marshal(map[string]string{
 		"access":  access,
-		"refresh": base64.StdEncoding.EncodeToString(encodedRefreshToken),
+		"refresh": encodedRefreshTokenStr,
 	})
 	if err != nil {
 		http.Error(w, fmt.Sprintf("marshal payload: %v", err), http.StatusInternalServerError)
@@ -86,7 +83,3 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 	w.Write(payload)
 }
-
-// func (s *Server) handleRefresh(w http.ResponseWriter, r *http.Request) {
-
-// }

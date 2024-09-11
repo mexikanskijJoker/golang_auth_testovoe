@@ -59,7 +59,7 @@ func (s *Store) ApplyMigrations(ctx context.Context) error {
 }
 
 func (s *Store) CreateUser(email, ip, guid string) error {
-	_, _, err := userTable.
+	sql, args, err := userTable.
 		Insert().
 		Rows(goqu.Record{
 			"uuid":               guid,
@@ -72,11 +72,16 @@ func (s *Store) CreateUser(email, ip, guid string) error {
 		return fmt.Errorf("create_user: %w", err)
 	}
 
+	_, err = s.db.Exec(context.Background(), sql, args...)
+	if err != nil {
+		return fmt.Errorf("exec create_user: %w", err)
+	}
+
 	return nil
 }
 
 func (s *Store) CreateRefreshToken(payload string) error {
-	_, _, err := refreshTokenTable.
+	sql, args, err := refreshTokenTable.
 		Insert().
 		Rows(goqu.Record{
 			"payload": payload,
@@ -84,6 +89,11 @@ func (s *Store) CreateRefreshToken(payload string) error {
 		Returning(refreshTokenCols...).ToSQL()
 	if err != nil {
 		return fmt.Errorf("create_refresh_token: %w", err)
+	}
+
+	_, err = s.db.Exec(context.Background(), sql, args...)
+	if err != nil {
+		return fmt.Errorf("exec create_refresh_token: %w", err)
 	}
 
 	return nil

@@ -1,25 +1,26 @@
 version: "3.8"
 
 services:
-  app:
-    build: .
-    ports:
-      - "8000:8000"
-    environment:
-      - DATABASE_URL=postgres://postgres:postgres@localhost:5433/postgres?sslmode=disable
-    depends_on:
-      - db
+  # auth_app:
+  #   build: .
+  #   environment:
+  #     DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable
+  #     JWT_SECRET: secret
+  #   ports:
+  #     - "8000:8000"
+  #   depends_on:
+  #     - db
 
   db:
-    image: postgres:latest
+    image: postgres:13
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
     ports:
-      - "5433:5432"
+      - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
 
 volumes:
-  postgres_data:
+  db_data:

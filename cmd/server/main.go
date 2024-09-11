@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -20,8 +20,7 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 	if err := run(ctx); err != nil {
-		fmt.Printf("unexpected error: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("unexpected error: %v", err)
 	}
 
 	fmt.Println("gracefully stopped")
@@ -30,11 +29,10 @@ func main() {
 func run(ctx context.Context) error {
 	// databaseURL := os.Getenv("DATABASE_URL")
 	// if databaseURL == "" {
-	// 	return fmt.Errorf("DATABASE_URL")
+	// 	return fmt.Errorf("DATABASE_URL not set")
 	// }
 
-	pgxCfg, err := pgxpool.ParseConfig("postgres://postgres:postgres@localhost:5433/postgres?sslmode=disable")
-	// pgxCfg, err := pgxpool.ParseConfig(databaseURL)
+	pgxCfg, err := pgxpool.ParseConfig("postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable")
 	if err != nil {
 		return err
 	}
@@ -50,7 +48,12 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("apply migrations: %w", err)
 	}
 
-	s := server.New(jwtmanager.New([]byte("")), storage)
+	// jwtSecret := os.Getenv("JWT_SECRET")
+	// if jwtSecret == "" {
+	// 	return fmt.Errorf("JWT_SECRET not set")
+	// }
+
+	s := server.New(jwtmanager.New([]byte("jwtSecret")), storage)
 
 	go func() {
 		<-ctx.Done()
@@ -58,7 +61,7 @@ func run(ctx context.Context) error {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if err := s.Shutdown(shutdownCtx); err != nil {
-			slog.Error("shutting down http server", "error", err)
+			log.Printf("error shutting down http server: %v", err)
 		}
 	}()
 
