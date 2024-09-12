@@ -25,31 +25,52 @@ func New(secret []byte) *Manager {
 
 func (m *Manager) GenerateJWT(guid, ip string) (access, refresh string, err error) {
 	uuid := uuid.New().String()
-	accessPayload := jwt.MapClaims{
-		uuid:           uuid,
-		contextKeyIP:   ip,
-		contextKeyGUID: guid,
-		contextKeyExp:  time.Now().Add(accessTokenTimeout).Unix(),
-	}
-	refreshPayload := jwt.MapClaims{
-		uuid:           uuid,
-		contextKeyIP:   ip,
-		contextKeyGUID: guid,
-		contextKeyExp:  time.Now().Add(refreshTokenTimeout).Unix(),
-	}
+	accessPayload := m.createPayload(uuid, guid, ip, accessTokenTimeout)
+	refreshPayload := m.createPayload(uuid, guid, ip, refreshTokenTimeout)
 
-	accessT := jwt.NewWithClaims(jwt.SigningMethodHS512, accessPayload)
-	refreshT := jwt.NewWithClaims(jwt.SigningMethodHS512, refreshPayload)
-
-	access, err = accessT.SignedString(m.secret)
+	access, err = m.signToken(accessPayload)
 	if err != nil {
 		return "", "", err
 	}
 
-	refresh, err = refreshT.SignedString(m.secret)
+	refresh, err = m.signToken(refreshPayload)
 	if err != nil {
 		return "", "", err
 	}
 
 	return
+}
+
+func (m *Manager) createPayload(uuid, guid, ip string, timeout time.Duration) jwt.MapClaims {
+	return jwt.MapClaims{
+		"uuid":         uuid,
+		contextKeyIP:   ip,
+		contextKeyGUID: guid,
+		contextKeyExp:  time.Now().Add(timeout).Unix(),
+	}
+}
+
+func (m *Manager) signToken(payload jwt.MapClaims) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS512, payload)
+	return token.SignedString(m.secret)
+}
+
+func (m *Manager) ParseJWT(tokenStr string) (jwt.MapClaims, error) {
+	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, jwt.ErrInvalidKeyType
+		}
+		return m.secret, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok || !token.Valid {
+		return nil, jwt.ErrInvalidKeyType
+	}
+
+	return claims, nil
 }

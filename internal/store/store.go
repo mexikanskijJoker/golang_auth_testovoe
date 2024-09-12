@@ -28,16 +28,10 @@ var (
 		"current_ip_sign_in",
 		"last_sign_in_at",
 	}
-)
-
-var (
 	refreshTokenTable = goqu.Dialect("postgres").From("refresh_tokens").Prepared(true)
 	refreshTokenCols  = []any{
 		"payload",
 	}
-)
-
-var (
 	//go:embed 1_init.sql
 	migrationFS []byte
 )
@@ -54,7 +48,6 @@ func (s *Store) ApplyMigrations(ctx context.Context) error {
 	if _, err := s.db.Exec(ctx, string(migrationFS)); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -72,8 +65,7 @@ func (s *Store) CreateUser(email, ip, guid string) error {
 		return fmt.Errorf("create_user: %w", err)
 	}
 
-	_, err = s.db.Exec(context.Background(), sql, args...)
-	if err != nil {
+	if _, err = s.db.Exec(context.Background(), sql, args...); err != nil {
 		return fmt.Errorf("exec create_user: %w", err)
 	}
 
@@ -91,8 +83,7 @@ func (s *Store) CreateRefreshToken(payload string) error {
 		return fmt.Errorf("create_refresh_token: %w", err)
 	}
 
-	_, err = s.db.Exec(context.Background(), sql, args...)
-	if err != nil {
+	if _, err = s.db.Exec(context.Background(), sql, args...); err != nil {
 		return fmt.Errorf("exec create_refresh_token: %w", err)
 	}
 

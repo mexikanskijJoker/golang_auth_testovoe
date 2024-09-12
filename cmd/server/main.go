@@ -16,6 +16,11 @@ import (
 	"github.com/mexikanskijjoker/golang_auth_testovoe/internal/store"
 )
 
+const (
+	databaseURL = "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
+	jwtSecret   = "secret"
+)
+
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
@@ -27,12 +32,7 @@ func main() {
 }
 
 func run(ctx context.Context) error {
-	// databaseURL := os.Getenv("DATABASE_URL")
-	// if databaseURL == "" {
-	// 	return fmt.Errorf("DATABASE_URL not set")
-	// }
-
-	pgxCfg, err := pgxpool.ParseConfig("postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable")
+	pgxCfg, err := pgxpool.ParseConfig(databaseURL)
 	if err != nil {
 		return err
 	}
@@ -48,12 +48,7 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("apply migrations: %w", err)
 	}
 
-	// jwtSecret := os.Getenv("JWT_SECRET")
-	// if jwtSecret == "" {
-	// 	return fmt.Errorf("JWT_SECRET not set")
-	// }
-
-	s := server.New(jwtmanager.New([]byte("jwtSecret")), storage)
+	s := server.New(jwtmanager.New([]byte(jwtSecret)), storage)
 
 	go func() {
 		<-ctx.Done()

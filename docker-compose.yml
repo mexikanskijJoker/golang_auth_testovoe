@@ -1,16 +1,6 @@
 version: "3.8"
 
 services:
-  # auth_app:
-  #   build: .
-  #   environment:
-  #     DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable
-  #     JWT_SECRET: secret
-  #   ports:
-  #     - "8000:8000"
-  #   depends_on:
-  #     - db
-
   db:
     image: postgres:13
     environment:
@@ -21,6 +11,8 @@ services:
       - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
+    env_file:
+      - .env
 
 volumes:
   db_data:
